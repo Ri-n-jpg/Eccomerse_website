@@ -1,7 +1,11 @@
-import express from 'express';
-import { loginUser,registerUser,adminLogin } from '../controllers/userController.js';
-const userRouter=express.Router();
-userRouter.post('/register',registerUser);
-userRouter.post('/login',loginUser);
-userRouter.post('/admin',adminLogin);
-export default userRouter;
+import express from "express";
+import { addProduct, listProducts, removeProduct, singleProduct } from "../controllers/productController.js";
+
+const router = express.Router();
+
+router.post("/add", addProduct);
+router.post("/remove", removeProduct);
+router.post("/single", singleProduct);
+router.get("/list", listProducts);
+
+export default router;
