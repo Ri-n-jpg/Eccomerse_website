@@ -1,86 +1,138 @@
 import productModel from "../models/productModel.js";
+import { v2 as cloudinary } from "cloudinary";
 
+// 💚 ADD PRODUCT CONTROLLER
 const addProduct = async (req, res) => {
   try {
-    // 🟢 Extract data safely
     let { name, description, price, category, subCategory, sizes, bestseller } = req.body;
 
     console.log("REQ.BODY:", req.body);
     console.log("REQ.FILES:", req.files);
 
-    // 🟢 Parse sizes if sent as JSON string
+    // ----------------------------------------------------
+    // ✅ FIXED SIZES PARSER (NO MORE ERRORS)
+    // ----------------------------------------------------
     if (typeof sizes === "string") {
-      try {
+      // Case 1: JSON array string → ["S","M","L"]
+      if (sizes.startsWith("[") && sizes.endsWith("]")) {
         sizes = JSON.parse(sizes);
-      } catch {
-        sizes = [sizes];
+      }
+      // Case 2: CSV string → "S,M,L"
+      else {
+        sizes = sizes.split(",").map((s) => s.trim());
       }
     }
 
-    // 🟢 Convert bestseller to boolean
+    // ----------------------------------------------------
+    // Convert bestseller to boolean
+    // ----------------------------------------------------
     bestseller = bestseller === "true" || bestseller === true;
 
-    // 🟢 Extract uploaded image data
-    const image1 = req.files?.image1?.[0];
-    const image2 = req.files?.image2?.[0];
-    const image3 = req.files?.image3?.[0];
-    const image4 = req.files?.image4?.[0];
+    // ----------------------------------------------------
+    // Extract uploaded images from multer
+    // ----------------------------------------------------
+    const images = [
+      req.files?.image1?.[0],
+      req.files?.image2?.[0],
+      req.files?.image3?.[0],
+      req.files?.image4?.[0],
+    ].filter(Boolean);
 
-    // 🟢 Collect all uploaded images with full metadata
-    const images = [image1, image2, image3, image4]
-      .filter(Boolean)
-      .map((file) => ({
-        filename: file.filename,
-        originalname: file.originalname,
-        path: file.path,
-        mimetype: file.mimetype,
-        size: file.size,
-      }));
-
-    // 🛑 Validate images
     if (images.length === 0) {
-      return res.status(400).json({ success: false, message: "At least one image is required" });
+      return res.status(400).json({
+        success: false,
+        message: "At least one image is required",
+      });
     }
 
-    // 🟢 Create product document
+    // ----------------------------------------------------
+    // UPLOAD TO CLOUDINARY (IMPORTANT)
+    // ----------------------------------------------------
+    const imagesUrl = await Promise.all(
+      images.map(async (file) => {
+        const upload = await cloudinary.uploader.upload(file.path, {
+          resource_type: "image",
+        });
+        return upload.secure_url; // 💚 We only save URL
+      })
+    );
+
+    // ----------------------------------------------------
+    // SAVE PRODUCT IN MONGODB
+    // ----------------------------------------------------
     const newProduct = new productModel({
       name,
       description,
-      price,
+      price: Number(price),
       category,
-      subCategory, // ✅ matches schema
+      subCategory,
       sizes,
       bestseller,
-      image: images, // ✅ matches schema field name
+      image: imagesUrl, // ⭐ Save Cloudinary URL (FIXED)
       date: Date.now(),
     });
 
-    // 🟢 Save to DB
-    const savedProduct = await newProduct.save();
+    const saved = await newProduct.save();
 
     res.json({
       success: true,
-      message: "✅ Product added successfully",
-      data: savedProduct,
+      message: "Product added successfully",
+      data: saved,
     });
   } catch (error) {
     console.error("❌ Error in addProduct:", error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
-// Placeholder exports
+// ----------------------------------------------------
+// LIST ALL PRODUCTS
+// ----------------------------------------------------
 const listProducts = async (req, res) => {
+  try{
   const products = await productModel.find();
   res.json({ success: true, products });
-};
+}
+catch(error){
+  console.log(error);
+  res.json({success:false,message:error.message})
+}}
 
+// ----------------------------------------------------
+// REMOVE PRODUCT (dummy)
+// ----------------------------------------------------
 const removeProduct = async (req, res) => {
-  res.json({ success: true, message: "Remove product placeholder" });
+  try {
+    console.log("ID RECEIVED:", req.body.id);
+
+    const deleted = await productModel.findByIdAndDelete(req.body.id);
+
+    console.log("DELETE RESULT:", deleted);
+
+    res.json({ success: true, message: "Product Removed" });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
 };
 
+
+// ----------------------------------------------------
+// SINGLE PRODUCT (dummy)
+// ----------------------------------------------------
 const singleProduct = async (req, res) => {
-  res.json({ success: true, message: "Single product placeholder" });
-};
+try {
+
+  const {productId} = req.body
+  const product=await productModel.findById(productId)
+  res.json({ success: true, product });
+}
+catch (error){
+  console.log(error)
+  res.json({success:false,message:error.message})
+}}
 
 export { addProduct, listProducts, removeProduct, singleProduct };

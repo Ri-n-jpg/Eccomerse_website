@@ -50,7 +50,25 @@ catch (error){
     res.json({success:false,message:error.message})
 }
 }
-const adminLogin=async(req,res)=>{
+const adminLogin = async (req, res) => {
+    try {
+        const { email, password } = req.body;
 
-}
-export {loginUser,registerUser,adminLogin}
+        if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
+            const token = jwt.sign(
+    { email: process.env.ADMIN_EMAIL },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+);
+
+            return res.json({ success: true, token });
+        } else {
+            return res.json({ success: false, message: "Invalid credentials" });
+        }
+    }
+    catch (error) {
+        console.log(error);
+        res.json({ success: false, message: error.message });
+    }
+};
+export { loginUser, registerUser, adminLogin };
