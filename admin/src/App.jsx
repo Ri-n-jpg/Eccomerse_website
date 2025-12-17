@@ -1,9 +1,14 @@
 import React from 'react'
-
+import Navbar from './components/Navbar.jsx'
+import Sidebar from './components/Sidebar.jsx'
 const App = () => {
   return (
+    <div className='bg-gray-50 min-h-screen'>
+    <Navbar />
+    <hr />
     <div>
-      Admin Panel Working
+      <Sidebar />
+    </div>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import React from 'react'
-import { assets } from '../assets/assets'
+import { assets } from '../assets/assets';
 const Hero = () => {
   return (
     <div className='flex felx-col sm:flex-row border border-gray-400'>
